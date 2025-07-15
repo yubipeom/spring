@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<!-- 
+    员工数据访问映射文件
+    这个文件定义了所有与数据库交互的SQL语句
+    每个SQL语句都对应EmployeeMapper接口中的一个方法
+-->
+<mapper namespace="com.example.learning.mapper.EmployeeMapper">
+    
+    <!-- 
+        结果映射配置
+        定义如何将数据库查询结果转换为Employee对象
+        比如：数据库中的user_id字段映射到Employee对象的userId属性
+    -->
+    <resultMap id="BaseResultMap" type="com.example.learning.entity.Employee">
+        <id column="user_id" property="userId"/>  <!-- 主键字段 -->
+        <result column="first_name" property="firstName"/>  <!-- 名字字段 -->
+        <result column="last_name" property="lastName"/>  <!-- 姓氏字段 -->
+        <result column="salary" property="salary"/>  <!-- 工资字段 -->
+        <result column="currency" property="currency"/>  <!-- 货币字段 -->
+        <result column="birthdate" property="birthdate"/>  <!-- 生日字段 -->
+        <result column="is_active" property="isActive"/>  <!-- 在职状态字段 -->
+        <result column="level" property="level"/>  <!-- 级别字段 -->
+        <result column="created_at" property="createdAt"/>  <!-- 创建时间字段 -->
+        <result column="updated_at" property="updatedAt"/>  <!-- 更新时间字段 -->
+    </resultMap>
+    
+    <!-- 
+        基础字段列表
+        定义查询时常用的字段列表，避免重复编写
+    -->
+    <sql id="Base_Column_List">
+        user_id, first_name, last_name, salary, currency, birthdate, is_active, level, created_at, updated_at
+    </sql>
+    
+    <!-- 
+        根据ID查询员工
+        使用selectById方法名，对应接口中的方法
+    -->
+    <select id="selectById" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>  <!-- 引用上面定义的字段列表 -->
+        FROM employees
+        WHERE user_id = #{id}  <!-- #{id}是参数占位符，会被实际的值替换 -->
+    </select>
+    
+    <!-- 
+        查询所有员工
+        不需要任何条件，直接查询所有记录
+    -->
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM employees
+    </select>
+    
+    <!-- 
+        根据级别查询员工
+        只查询指定级别的员工记录
+    -->
+    <select id="selectByLevel" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM employees
+        WHERE level = #{level}
+    </select>
+    
+    <!-- 
+        根据条件查询员工
+        支持多个条件的组合查询
+        使用动态SQL，根据实际传入的条件生成不同的SQL语句
+    -->
+    <select id="selectByCondition" resultMap="BaseResultMap">
+        SELECT 
+        <include refid="Base_Column_List"/>
+        FROM employees
+        <where>  <!-- where标签会自动处理AND关键字 -->
+            <if test="lastName != null and lastName != ''">  <!-- 如果姓氏不为空 -->
+                AND last_name LIKE CONCAT('%', #{lastName}, '%')  <!-- 模糊查询 -->
+            </if>
+            <if test="isActive != null">  <!-- 如果在职状态不为空 -->
+                AND is_active = #{isActive}
+            </if>
+            <if test="level != null">  <!-- 如果级别不为空 -->
+                AND level = #{level}
+            </if>
+        </where>
+        <if test="limit != null">  <!-- 如果设置了分页参数 -->
+            LIMIT #{limit}  <!-- 限制返回的记录数 -->
+            <if test="offset != null">
+                OFFSET #{offset}  <!-- 设置起始位置 -->
+            </if>
+        </if>
+    </select>
+    
+    <!-- 
+        统计符合条件的员工数量
+        用于分页时计算总记录数
+    -->
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*) FROM employees
+        <where>
+            <if test="userId != null">
+                AND user_id = #{userId}
+            </if>
+            <if test="firstName != null and firstName != ''">
+                AND first_name LIKE CONCAT('%', #{firstName}, '%')
+            </if>
+            <if test="lastName != null and lastName != ''">
+                AND last_name LIKE CONCAT('%', #{lastName}, '%')
+            </if>
+            <if test="salary != null">
+                AND salary = #{salary}
+            </if>
+            <if test="currency != null and currency != ''">
+                AND currency = #{currency}
+            </if>
+            <if test="birthdate != null">
+                AND birthdate = #{birthdate}
+            </if>
+            <if test="isActive != null">
+                AND is_active = #{isActive}
+            </if>
+            <if test="level != null">
+                AND level = #{level}
+            </if>
+        </where>
+    </select>
+    
+    <!-- 
+        新增员工
+        将新的员工信息插入到数据库中
+    -->
+    <insert id="insert" parameterType="com.example.learning.entity.Employee">
+        INSERT INTO employees (
+            user_id, first_name, last_name, salary, currency, 
+            birthdate, is_active, level, created_at, updated_at
+        ) VALUES (
+            #{userId}, #{firstName}, #{lastName}, #{salary}, #{currency},
+            #{birthdate}, #{isActive}, #{level}, #{createdAt}, #{updatedAt}
+        )
+    </insert>
+    
+    <!-- 
+        更新员工信息
+        只更新有变化的字段
+        使用动态SQL，避免更新未修改的字段
+    -->
+    <update id="update" parameterType="com.example.learning.entity.Employee">
+        UPDATE employees
+        <set>  <!-- set标签会自动处理逗号 -->
+            <if test="firstName != null">first_name = #{firstName},</if>
+            <if test="lastName != null">last_name = #{lastName},</if>
+            <if test="salary != null">salary = #{salary},</if>
+            <if test="currency != null">currency = #{currency},</if>
+            <if test="birthdate != null">birthdate = #{birthdate},</if>
+            <if test="isActive != null">is_active = #{isActive},</if>
+            <if test="level != null">level = #{level},</if>
+            updated_at = NOW()  <!-- 更新时间自动设置为当前时间 -->
+        </set>
+        WHERE user_id = #{userId}  <!-- 根据ID更新 -->
+    </update>
+    
+    <!-- 
+        删除员工
+        根据ID删除指定的员工记录
+    -->
+    <delete id="deleteById">
+        DELETE FROM employees WHERE user_id = #{id}
+    </delete>
+    
+    <!-- 
+        清空员工表
+        删除表中的所有数据，但保留表结构
+        注意：此操作不可恢复，请谨慎使用
+    -->
+    <update id="truncateTable">
+        TRUNCATE TABLE employees
+    </update>
+</mapper> 
