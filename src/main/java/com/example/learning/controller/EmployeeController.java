@@ -12,12 +12,7 @@ import java.util.List;
 @RequestMapping("/api/employees")
 public class EmployeeController {
 
-    @Autowired
-    private EmployeeService employeeService;
-    @GetMapping("/test")
-    public Employee test(@RequestBody Employee employee) {
-       return employee;
-    }
+
     @GetMapping("/{userId}")
     public ResponseEntity<Employee> getEmployeeById(@PathVariable Integer userId) {
         Employee employee = employeeService.getEmployeeById(userId);
